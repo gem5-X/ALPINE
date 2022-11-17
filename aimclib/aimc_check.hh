@@ -2,7 +2,7 @@
  * Copyright EPFL 2021
  * Joshua Klein
  * 
- * This file contains classes an functions for which we can emulate and check
+ * This file contains classes functions for which we can emulate and check
  * the code in the associated gem5 model.  This model reflects an updated
  * model optimized for queueing and dequeueing: we assume that the control unit
  * of the AIMC core has two internal counters that can be used for the

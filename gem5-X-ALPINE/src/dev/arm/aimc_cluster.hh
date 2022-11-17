@@ -35,7 +35,6 @@
 
 #include "arch/arm/system.hh"
 #include "debug/AIMCCluster.hh"
-#include "dev/arm/aimc_dma_controller.hh"
 #include "dev/io_device.hh"
 #include "mem/packet.hh"
 #include "mem/packet_access.hh"
@@ -45,7 +44,6 @@
 
 class ArmSystem;
 class BaseCPU;
-class AIMCDMAController;
 
 enum ActivationFunctions {
     ReLU,
@@ -89,33 +87,6 @@ struct AIMCTile {
 };
 
 
-struct MLPAcceleratorConfig {
-    // Constructor.
-    MLPAcceleratorConfig() :
-    nLayers(2),
-    layerIdx(new int[nLayers]),
-    layerAct(new ActivationFunctions[nLayers])
-    {
-        // MLP + ReLU Layer 1.
-        layerIdx[0] = 0; // Use AIMC tile 1.
-        layerAct[0] = ReLU;
-
-        // MLP + ReLU Layer 2.
-        layerIdx[1] = 1; // Use AIMC tile 2.
-        layerAct[1] = ReLU;
-
-        // Additional delay for inference (* ticks per ns).
-        inferenceDelay = 200 * 1000;
-    }
-
-    int nLayers;            // How many layers is this network?
-    int * layerIdx;         // Which AIMC tile do we use for each layer?
-    // Which activation function do we use for each layer?
-    ActivationFunctions * layerAct;
-    Tick inferenceDelay;    // What is the inference delay?
-};
-
-
 class AIMCCluster : public BasicPioDevice {
   private:
     // All CPUs
@@ -123,9 +94,6 @@ class AIMCCluster : public BasicPioDevice {
 
     // All AIMC tiles (per thread).
     std::vector<AIMCTile *> tiles;
-
-    // Loosely-coupled accelerator configuration.
-    MLPAcceleratorConfig * accConfig;
 
     // System this AIMC cluster to.
     ArmSystem * system;
@@ -146,12 +114,8 @@ class AIMCCluster : public BasicPioDevice {
     void aimcQueueSingle(int tid, int8_t val);
     uint32_t aimcDequeue(int tid);
     int8_t aimcDequeueSingle(int tid);
-    void aimcTransferLayer(int fromLayer, int toLayer);
     int8_t aimcParamRead(int tid, int x, int y);
     void aimcParamWrite(int tid, int x, int y, int8_t val);
-
-    // Accelerator operations.
-    void aimcReLU(int tid);
 
     // Required by SimObject.
     Tick read(PacketPtr pkt) override;
@@ -161,9 +125,6 @@ class AIMCCluster : public BasicPioDevice {
 
     // Required by BasicPioDevice.
     AddrRangeList getAddrRanges() const override;
-
-    // Required for accessing DMA controller methods.
-    friend class AIMCDMAController;
 };
 
 #endif // __AIMC_CLUSTER_H__

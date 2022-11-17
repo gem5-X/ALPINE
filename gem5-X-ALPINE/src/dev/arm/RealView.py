@@ -109,17 +109,6 @@ class AIMCCluster(BasicPioDevice):
     pio_size = Param.Int32(0x1000, "Size of AIMC memory-mapped address range.")
     cpus = VectorParam.BaseCPU("CPUs/harts attached to this device.")
 
-class AIMCDMAController(AmbaDmaDevice):
-    type = 'AIMCDMAController'
-    cxx_header = "dev/arm/aimc_dma_controller.hh"
-    pio_addr = Param.Addr(0x10021000, "Address for DMA-enabled AIMC cluster access.")
-    aimc_cluster = Param.AIMCCluster(Parent.any, "Pointer to AIMC wrapper object.")
-    # TODO: Input desired characteristics
-    pio_latency = Param.Latency("10ns", "Time between action and write/read result by AMBA DMA Device")
-    gic = Param.BaseGic(Parent.any, "Gic to use for interrupting")
-    int_num = Param.UInt32(100, "Interrupt number that connects to GIC")
-    amba_id = 0x00141112
-
 class A9SCU(BasicPioDevice):
     type = 'A9SCU'
     cxx_header = "dev/arm/a9scu.hh"
@@ -559,7 +548,6 @@ class RealView(Platform):
 
     # Analog computational memory integration.
     aimc = AIMCCluster()
-    aimcDma = AIMCDMAController()
 
     def _on_chip_devices(self):
         return []
@@ -739,8 +727,6 @@ class RealViewPBX(RealView):
        self.energy_ctrl.pio   = bus.master
        # AIMC tiles.
        self.aimc.pio          = bus.master
-       self.aimcDma.pio       = bus.master
-       self.aimcDma.dma       = bus.slave
 
     # Set the clock domain for IO objects that are considered
     # to be "far" away from the cores.
@@ -772,7 +758,6 @@ class RealViewPBX(RealView):
         self.energy_ctrl.clk_domain   = clkdomain
         # AIMC tiles.
         self.aimc.clk_domain          = clkdomain
-        self.aimcDma.clk_domain       = clkdomain
 
 # Reference for memory map and interrupt number
 # RealView Emulation Baseboard User Guide (ARM DUI 0143B)
@@ -860,8 +845,6 @@ class RealViewEB(RealView):
        self.energy_ctrl.pio   = bus.master
        # AIMC tiles.
        self.aimc.pio          = bus.master
-       self.aimcDma.pio       = bus.master
-       self.aimcDma.dma       = bus.slave
 
     # Set the clock domain for IO objects that are considered
     # to be "far" away from the cores.
@@ -893,7 +876,6 @@ class RealViewEB(RealView):
         self.energy_ctrl.clk_domain   = clkdomain
         # AIMC tiles.
         self.aimc.clk_domain          = clkdomain
-        self.aimcDma.clk_domain       = clkdomain
 
 class VExpress_EMM(RealView):
     _mem_regions = [(Addr('2GB'), Addr('2GB'))]
@@ -994,8 +976,7 @@ class VExpress_EMM(RealView):
             self.mmc_fake,
             self.energy_ctrl,
             # AIMC tiles.
-            self.aimc,
-            self.aimcDma
+            self.aimc
         ]
         # Try to attach the I/O if it exists
         if hasattr(self, "ide"):
@@ -1087,7 +1068,6 @@ Memory map:
        0x10000000-0x1000ffff: gem5 energy controller
        0x10010000-0x1001ffff: gem5 pseudo-ops
        0x10020000-0x10021000: AIMC tiles.
-       0x10021000-0x10022000: AIMC DMA controller.
 
    0x14000000-0x17ffffff: Reserved (Off-chip, PSRAM, CS1)
    0x18000000-0x1bffffff: Reserved (Off-chip, Peripherals, CS2)
@@ -1228,8 +1208,7 @@ Interrupts:
             self.vio[0],
             self.vio[1],
             # AIMC tiles.
-            self.aimc,
-            self.aimcDma
+            self.aimc
         ]
 
     def attachPciDevice(self, device, *args, **kwargs):

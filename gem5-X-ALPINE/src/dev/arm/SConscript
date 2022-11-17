@@ -53,7 +53,6 @@ if env['TARGET_ISA'] == 'arm':
     Source('amba_device.cc')
     Source('amba_fake.cc')
     Source('aimc_cluster.cc')
-    Source('aimc_dma_controller.cc')
     Source('base_gic.cc')
     Source('flash_device.cc')
     Source('generic_timer.cc')
@@ -78,7 +77,6 @@ if env['TARGET_ISA'] == 'arm':
 
     DebugFlag('AMBA')
     DebugFlag('AIMCCluster')
-    DebugFlag('AIMCDMAControl')
     DebugFlag('FlashDevice')
     DebugFlag('HDLcd')
     DebugFlag('PL111')

@@ -47,8 +47,6 @@ AIMCCluster::AIMCCluster(
         cpus.push_back(cpu);
         tiles.push_back(new AIMCTile());
     }
-
-    this->accConfig = new MLPAcceleratorConfig();
 }
 
 // Destroy AIMC tiles and associated objects.
@@ -59,11 +57,6 @@ AIMCCluster::~AIMCCluster()
     	delete[] tile->outputMemory;
     	delete[] tile->crossbar;
         delete[] tile;
-    }
-
-    if (accConfig) {
-        delete[] accConfig->layerIdx;
-        delete[] accConfig->layerAct;
     }
 }
 
@@ -77,12 +70,10 @@ AIMCCluster::init()
 
 // Perform M x V using TID's AIMC tile crossbar and input memory, store result
 // in output memory.
-// NOTE: Also refreshed input memory for future AIMC process use.
+// NOTE: Also refreshes input memory for future AIMC process use.
 void
 AIMCCluster::aimcProcess(int tid)
 {
-    warn("Performing AIMC process on HW TID %d.", tid);
-
 	int height = tiles[tid]->crossbarHeight;
     int width = tiles[tid]->crossbarWidth;
 
@@ -113,8 +104,6 @@ AIMCCluster::aimcProcess(int tid)
 void
 AIMCCluster::aimcQueue(int tid, uint32_t val)
 {
-    warn("Performing AIMC tile queue on HW TID %d.", tid);
-
     int idx = tiles[tid]->inputMemoryCounter;
     int length = tiles[tid]->vectorization;
 
@@ -134,8 +123,6 @@ AIMCCluster::aimcQueue(int tid, uint32_t val)
 void
 AIMCCluster::aimcQueueSingle(int tid, int8_t val)
 {
-    warn("Performing single AIMC tile queue: %d on HW TID %d.", val, tid);
-
     int idx = tiles[tid]->inputMemoryCounter;
 
     if ((idx) < tiles[tid]->crossbarHeight) {
@@ -151,9 +138,7 @@ AIMCCluster::aimcQueueSingle(int tid, int8_t val)
 uint32_t
 AIMCCluster::aimcDequeue(int tid)
 {
-    warn("Performing AIMC tile dequeue on HW TID %d.", tid);
-
-	uint32_t result = 0;
+    uint32_t result = 0;
     int idx = tiles[tid]->outputMemoryCounter;
     int length = tiles[tid]->vectorization;
 
@@ -173,8 +158,6 @@ AIMCCluster::aimcDequeue(int tid)
 int8_t
 AIMCCluster::aimcDequeueSingle(int tid)
 {
-    warn("Performing AIMC tile dequeue on HW TID %d.", tid);
-
     int8_t result = 0;
     int idx = tiles[tid]->outputMemoryCounter;
 
@@ -185,21 +168,6 @@ AIMCCluster::aimcDequeueSingle(int tid)
     tiles[tid]->outputMemoryCounter++;
 
     return result;
-}
-
-// Transfer the contents from one tile's output memory to another tile's input
-// memory.
-void
-AIMCCluster::aimcTransferLayer(int fromLayer, int toLayer)
-{
-    int fromSize = tiles[fromLayer]->crossbarWidth;
-    int toSize = tiles[toLayer]->crossbarHeight;
-
-    for (int i = 0; (i < fromSize) && (i < toSize); i++) {
-        tiles[toLayer]->inputMemory[i] = tiles[fromLayer]->outputMemory[i];
-    }
-
-    return;
 }
 
 // Read parameter at TID's AIMC tile's crossbar[x, y].
@@ -233,71 +201,17 @@ AIMCCluster::aimcParamWrite(int tid, int x, int y, int8_t val)
     return;
 }
 
-// Perform ReLU operation on selected AIMC tile's output memeory.
-void
-AIMCCluster::aimcReLU(int tid)
-{
-    int width = tiles[tid]->crossbarWidth;
-
-    for (int i = 0; i < width; i++) {
-        if (tiles[tid]->outputMemory[i] < 0) {
-            tiles[tid]->outputMemory[i] = 0;
-        }
-    }
-
-    return;
-}
-
 // Read to AIMC cluster based on packet interation.
 Tick
 AIMCCluster::read(PacketPtr pkt)
 {
     assert(pkt->getAddr() >= pioAddr && pkt->getAddr() < pioAddr + pioSize);
-
     Addr addr = pkt->getAddr() - pioAddr;
 
     warn("AIMC cluster read at address %#x.", addr);
 
-    // TODO: Come up with generic configuration and implement here, instead of hard-coding.
-    if (tiles[accConfig->layerIdx[1]]->outputMemoryCounter == 0) {
-        // If this is the first read for the inference, perform inference 
-        // operations before returning result.
-        aimcProcess(0);
-        aimcReLU(0);
-        aimcTransferLayer(0, 1);
-        aimcProcess(1);
-        aimcReLU(1);
-
-        // for (int i = 0; i < accConfig->nLayers; i++) {
-        //     aimcProcess(accConfig->layerIdx[i]);
-        //     switch(accConfig->layerAct[i]) {
-        //         case ReLU:
-        //             aimcReLU(accConfig->layerIdx[i]);
-        //             break;
-        //         default:
-        //             break;
-        //     }
-        // }
-
-        // Get first output value.
-        // pkt->set<int8_t>(aimcDequeueSingle(accConfig->layerIdx[1]));
-        pkt->set<int8_t>(aimcDequeueSingle(1));
-
-        // Add accelerator inference delay with packet return.
-        pkt->makeAtomicResponse();
-
-        // TODO: Clarify actual delay.  Includes MVM + layer transfer (not ReLU).
-        // return pioDelay + accConfig->inferenceDelay;
-        return pioDelay + (200 * 1000) + (tiles[0]->crossbarWidth * 1000);
-    } else {
-        // Set packet data.
-        pkt->set<int8_t>(aimcDequeueSingle(1));
-        // pkt->set<int8_t>(aimcDequeueSingle(accConfig->layerIdx[1]));
-    }
-
     pkt->makeAtomicResponse();
-	// return pioDelay;
-    return pioDelay + (1 * 1000);
+	return pioDelay;
 }
 
 // Write to AIMC cluster based on packet interation.
@@ -305,23 +219,13 @@ Tick
 AIMCCluster::write(PacketPtr pkt)
 {
     assert(pkt->getAddr() >= pioAddr && pkt->getAddr() < pioAddr + pioSize);
-
     Addr addr = pkt->getAddr() - pioAddr;
     uint8_t data = pkt->get<uint8_t>();
 
     warn("AIMC cluster write %d at address %#x.", (int)data, addr);
 
-    // Perform accelerator operations.  This accelerator assumes a 2-layer MLP
-    // with ReLU activations.  It is assumed writes are sequential and go to
-    // layer 1's input memory.
-
-    // TODO: Come up with generic configuration and implement here, instead of hard-coding.
-    // aimcQueueSingle(accConfig->layerIdx[0], data);
-    aimcQueueSingle(0, data);
-
     pkt->makeAtomicResponse();
-	// return pioDelay;
-    return pioDelay + (1 * 1000);
+	return pioDelay;
 }
 
 // Serialize AIMC cluster.
@@ -339,11 +243,6 @@ AIMCCluster::serialize(CheckpointOut &cp) const
         delete[] tile->crossbar;
         delete[] tile;
     }
-
-    // if (accConfig) {
-    //     delete[] accConfig->layerIdx;
-    //     delete[] accConfig->layerAct;
-    // }
 }
 
 // Unserialize AIMC cluster.
@@ -366,9 +265,6 @@ AIMCCluster::unserialize(CheckpointIn &cp)
         cpus.push_back(cpu);
         tiles.push_back(new AIMCTile());
     }
-
-    // Init accelerator config.
-    // this->accConfig = new MLPAcceleratorConfig();
 }
 
 // Returns address range of AIMC cluster, required for the bridge to be able to
@@ -379,7 +275,6 @@ AIMCCluster::getAddrRanges() const
     AddrRangeList ranges;
     ranges.push_back(RangeSize(pioAddr, pioSize));
     return ranges;
-
 }
 
 AIMCCluster *
