@@ -133,6 +133,8 @@ class MinorDefaultIntFU(MinorFU):
 
 # Op latencies function of CPU frequency
 # Process = 100ns, Q/DQ = 1ns, Param R/W = ?ns
+# NOTE: You should change the opLat value w.r.t. the CPU frequency:
+# inst time = opLat * CPU frequency
 class MinorDefaultCusProcessFU(MinorFU):
     opClasses = minorMakeOpClassSet(['CusAluProcess'])
     timings = [MinorFUTiming(description="CusProcess",
