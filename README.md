@@ -17,7 +17,7 @@ The contents of AIMClib are found in the *aimclib* folder.  An example perceptro
 
 ## Running ALPINE simulations
 
-No additional script options are required to run ALPINE simulations; your system will automatically spawn with one AIMC tile per CPU, parameterized according to the given size in ALPINE/src/dev/arm/aimc_cluster.hh.  An example command to run the gem5 binary is as follows:
+No additional script options are required to run ALPINE simulations; your system will automatically spawn with one AIMC tile per CPU, parameterized according to the given size in gem5-X-ALPINE/src/dev/arm/aimc_cluster.hh.  An example command to run the gem5 binary is as follows:
 
 ```
 ./build/ARM/gem5.{fast, opt, debug} \
