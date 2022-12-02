@@ -5,7 +5,7 @@ Analog In-Memory Compute (AIMC) tiles can be used to perform Matrix-Vector Multi
 The ALPINE framework, its features, description of the validated tile model, and case studies using ALPINE are described in the following paper:
 >J. Klein, I. Boybat, Y. Qureshi, M. Dazzi, A. Levisse, G. Ansaloni, M. Zapater, A. Sebastian, and D. Atienza.
 >"[**ALPINE: Analog In-Memory Acceleration with Tight Processor Integration for Deep Learning**]"(https://infoscience.epfl.ch/record/293272).
->Accepted by _IEEE Transactions on Computers (TC)_, 2022.
+>_IEEE Transactions on Computers (TC)_, 2023.
 
 ## Installing and Compiling gem5-X
 
