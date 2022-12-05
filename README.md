@@ -9,7 +9,7 @@ The ALPINE framework, its features, description of the validated tile model, and
 
 ## Installing and Compiling gem5-X
 
-Please carefully follow the instructions provided in Section 2 of the technical manual enclosed in this repository to installm gem5-X-ALPINE and the necessary dependencies. 
+Please carefully follow the instructions provided in Section 2 of the [technical manual enclosed](https://github.com/gem5-X/ALPINE/blob/master/gem5_X_TechnicalManual_ALPINE.pdf) in this repository to install gem5-X-ALPINE and the necessary dependencies. 
 
 ## Compiling and creating benchmarks using AIMClib.
 
